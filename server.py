@@ -95,14 +95,14 @@ class Server:
                     if conn in self.clients:
                         self.clients.remove(conn)
                     conn.close()
-                    break  # EXIT lOOP
+                    break  # Exit loop
 
             except Exception as e:
                 print(f"Error handling message from {addr}: {e}")
                 if conn in self.clients:
                     self.clients.remove(conn)
                 conn.close()
-                break  # EXIT lOOP
+                break  # Exit loop
 
     def execute(self):
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -116,13 +116,13 @@ class Server:
 
 def signal_handler(sig, frame):
     print('Shutting down server...')
-    # 关闭所有客户端连接
+    # Close all client connections
     for client in ser.clients:
         try:
             client.close()
         except Exception as e:
             print(f"Error closing client socket: {e}")
-    # 关闭监听socket
+    # Close listening socket
     try:
         ser.sock.close()
     except Exception as e:
@@ -133,7 +133,7 @@ def signal_handler(sig, frame):
 
 if __name__ == "__main__":
     ser = Server()
-    # 注册信号处理函数
+    # Register signal handling function
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
