@@ -9,8 +9,10 @@ import sys
 args = argparse.ArgumentParser(description="server")
 args.add_argument("addr", action="store", help="ip address")
 args.add_argument("port", type=int, action="store", help="port")
-# args_dict = vars(args.parse_args())
-args_dict = {"addr": '127.0.0.1', "port": 3000}
+# 如果使用命令行启动，取消下方代码的注释；If starting from the command line, uncomment the code below
+args_dict = vars(args.parse_args())
+# 如果喜欢使用PyCharm等IDE进行启动，取消下方代码的注释；If you prefer to start using an IDE such as PyCharm, uncomment the code below
+# args_dict = {"addr": '127.0.0.1', "port": 3000}
 
 
 class Server:
