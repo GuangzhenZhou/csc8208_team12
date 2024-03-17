@@ -23,34 +23,34 @@ class Server:
         self.sock.bind((args_dict["addr"], args_dict["port"]))
         self.sock.listen(100)
 
-        self.last_message_time = {}  # 记录每个客户端最后一次发送消息的时间
-        self.message_count = {}  # 记录每个客户端在规定时间内发送的消息数量
-        self.suspicious_users = set()  # 记录可疑用户
+        self.last_message_time = {}  # Records the last time each client sent a message
+        self.message_count = {}  # Records the number of messages sent by each client within a specified time period
+        self.suspicious_users = set()  # Log suspicious users
 
     def update_user_activity(self, conn, addr):
         current_time = time.time()
-        time_threshold = 60  # 60秒内的行为进行分析
-        message_limit = 3  # 在60秒内允许的最大消息数
+        time_threshold = 60  # Behavior analysis within 60 seconds
+        message_limit = 10  # Maximum number of messages allowed in 60 seconds
 
-        # 如果是首次发送消息，初始化记录
+        # If the message is sent for the first time, initialize the record
         if conn not in self.last_message_time:
             self.last_message_time[conn] = current_time
             self.message_count[conn] = 1
         else:
-            # 检查时间差
+            # Check time difference
             if current_time - self.last_message_time[conn] < time_threshold:
                 self.message_count[conn] += 1
                 if self.message_count[conn] > message_limit:
-                    # 标记为可疑用户并可能采取行动
+                    # Flag user as suspicious and possible action
                     print(f"[Warning] {addr} might be a bot.")
                     self.suspicious_users.add(conn)
             else:
-                # 重置计数器和时间戳
+                # Reset counters and timestamps
                 self.message_count[conn] = 1
                 self.last_message_time[conn] = current_time
 
     def broadcast(self, conn, addr, msg):
-        encoded_msg = f"<{addr[0]}> {msg}\n".encode('utf-8')
+        encoded_msg = f"<{addr[0]}> {msg}".encode('utf-8')
         for client in self.clients:
             if client != conn:
                 try:
@@ -60,34 +60,34 @@ class Server:
                     self.clients.remove(client)
 
     def client_handler(self, conn, addr):
-        # 发送连接确认消息
-        conn.send("Connection established".encode('utf-8'))
+        # Send connection confirmation message
+        conn.send("Connection established\n".encode('utf-8'))
 
         while True:
             try:
                 msg = conn.recv(4096)
                 if msg:
-                    decoded_msg = msg.decode('utf-8')
+                    decoded_msg = msg.decode('utf-8').rstrip('\n')
                     print(f"<{addr[0]}> {decoded_msg}")
 
-                    # 更新用户活动记录
+                    # Update user activity record
                     self.update_user_activity(conn, addr)
 
-                    # 广播消息给其他客户端
+                    # Broadcast messages to other clients
                     self.broadcast(conn, addr, decoded_msg)
                 else:
-                    # 如果没有接收到消息，可能是客户端已断开连接
+                    # If no message is received, the client may have disconnected
                     if conn in self.clients:
                         self.clients.remove(conn)
                     conn.close()
-                    break  # 退出循环
+                    break  # EXIT lOOP
 
             except Exception as e:
                 print(f"Error handling message from {addr}: {e}")
                 if conn in self.clients:
                     self.clients.remove(conn)
                 conn.close()
-                break  # 退出循环
+                break  # EXIT lOOP
 
     def execute(self):
         with concurrent.futures.ThreadPoolExecutor() as executor:

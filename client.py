@@ -24,8 +24,8 @@ class Client:
                 [sys.stdin, self.server], [], [])
             for sock in read_sock:
                 if sock == self.server:
-                    msg = sock.recv(4096).decode("utf-8")
-                    print(msg, end='')
+                    msg = sock.recv(4096).decode("utf-8").rstrip('\n')
+                    print(msg)
                 else:
                     msg = sys.stdin.readline().strip()
                     self.server.send((msg + '\n').encode('utf-8'))
