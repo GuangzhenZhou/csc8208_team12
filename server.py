@@ -10,9 +10,9 @@ args = argparse.ArgumentParser(description="server")
 args.add_argument("addr", action="store", help="ip address")
 args.add_argument("port", type=int, action="store", help="port")
 # 如果使用命令行启动，取消下方代码的注释；If starting from the command line, uncomment the code below
-args_dict = vars(args.parse_args())
+# args_dict = vars(args.parse_args())
 # 如果喜欢使用PyCharm等IDE进行启动，取消下方代码的注释；If you prefer to start using an IDE such as PyCharm, uncomment the code below
-# args_dict = {"addr": '127.0.0.1', "port": 3000}
+args_dict = {"addr": '127.0.0.1', "port": 3000}
 
 
 class Server:
@@ -25,9 +25,11 @@ class Server:
         self.sock.bind((args_dict["addr"], args_dict["port"]))
         self.sock.listen(100)
 
+        # 处理高频消息的部分
         self.last_message_time = {}  # Records the last time each client sent a message
         self.message_count = {}  # Records the number of messages sent by each client within a specified time period
         self.suspicious_users = set()  # Log suspicious users
+        self.silenced_users = {} # The key is conn and the value is the timestamp when the ban started.
 
     def update_user_activity(self, conn, addr):
         current_time = time.time()
@@ -44,8 +46,9 @@ class Server:
                 self.message_count[conn] += 1
                 if self.message_count[conn] > message_limit:
                     # Flag user as suspicious and possible action
-                    print(f"[Warning] {addr} might be a bot.")
+                    print(f"[Warning] {addr} might be a bot. Silencing for 1 minute.")
                     self.suspicious_users.add(conn)
+                    self.silenced_users[conn] = current_time  # Record the time when the ban started
             else:
                 # Reset counters and timestamps
                 self.message_count[conn] = 1
@@ -69,8 +72,18 @@ class Server:
             try:
                 msg = conn.recv(4096)
                 if msg:
-                    decoded_msg = msg.decode('utf-8').rstrip('\n')
-                    print(f"<{addr[0]}> {decoded_msg}")
+                    current_time = time.time()
+                    # Check if user is banned
+                    if conn in self.silenced_users and current_time - self.silenced_users[conn] < 60:
+                        # The user is in a muted state and a muting reminder message is sent.
+                        conn.send("YOU ARE CURRENTLY BANNED。\n".encode('utf-8'))
+                    else:
+                        # Unlock the mute status if the mute time has expired
+                        if conn in self.silenced_users:
+                            del self.silenced_users[conn]
+
+                        decoded_msg = msg.decode('utf-8').rstrip('\n')
+                        print(f"<{addr[0]}> {decoded_msg}")
 
                     # Update user activity record
                     self.update_user_activity(conn, addr)
