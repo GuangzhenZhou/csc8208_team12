@@ -24,12 +24,12 @@ class Client:
                 [sys.stdin, self.server], [], [])
             for sock in read_sock:
                 if sock == self.server:
-                    msg = sock.recv(4096)
-                    print(msg)
+                    msg = sock.recv(4096).decode("utf-8")
+                    print(msg, end='')
                 else:
-                    msg = sys.stdin.readline()
-                    self.server.send(msg.encode())
-                    sys.stdout.write(f"<You> {msg}")
+                    msg = sys.stdin.readline().strip()
+                    self.server.send((msg + '\n').encode('utf-8'))
+                    sys.stdout.write(f"<You> {msg}\n")
                     sys.stdout.flush()
 
 

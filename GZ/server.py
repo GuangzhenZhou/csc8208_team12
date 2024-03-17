@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import base64
 import socket
 import argparse
 import concurrent.futures
@@ -21,28 +21,32 @@ class Server:
         self.sock.bind((args_dict["addr"], args_dict["port"]))
         self.sock.listen(100)
 
-    def broadcast(self, conn, msg):
+    def broadcast(self, conn, addr, msg):
+        encoded_msg = f"<{addr[0]}> {msg}".encode('utf-8')
         for client in self.clients:
             if client != conn:
                 try:
-                    client.send(msg.encode())
+                    client.send(encoded_msg)
                 except:
                     client.close()
-                    self.clients.remove(conn)
+                    self.clients.remove(client)
 
     def client_handler(self, conn, addr):
-        conn.send("Connection established".encode())
-
+        conn.send("Connection established".encode('utf-8'))
         while True:
             try:
                 msg = conn.recv(4096)
                 if msg:
-                    print(f"<{addr[0]}> {msg}")
-                    self.broadcast(conn, f"<{addr[0]}> {msg}")
+                    decoded_msg = msg.decode('utf-8')
+                    print(f"<{addr[0]}> {decoded_msg}")
+                    self.broadcast(conn,addr, decoded_msg)
                 else:
                     self.clients.remove(conn)
-            except:
-                continue
+            except Exception as e:
+                print(f"Error handling message from {addr}: {e}")
+                if conn in self.clients:
+                    self.clients.remove(conn)
+                conn.close()
 
     def execute(self):
         with concurrent.futures.ThreadPoolExecutor() as executor:
