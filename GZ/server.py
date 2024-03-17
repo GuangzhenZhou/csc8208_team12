@@ -3,6 +3,8 @@ import base64
 import socket
 import argparse
 import concurrent.futures
+import signal
+import sys
 
 args = argparse.ArgumentParser(description="server")
 args.add_argument("addr", action="store", help="ip address")
@@ -58,7 +60,27 @@ class Server:
                 futures.append(
                     executor.submit(self.client_handler, conn=conn, addr=addr))
 
+def signal_handler(sig, frame):
+    print('Shutting down server...')
+    # 关闭所有客户端连接
+    for client in ser.clients:
+        try:
+            client.close()
+        except Exception as e:
+            print(f"Error closing client socket: {e}")
+    # 关闭监听socket
+    try:
+        ser.sock.close()
+    except Exception as e:
+        print(f"Error closing server socket: {e}")
+    print("Server shut down successfully.")
+    sys.exit(0)
+
 
 if __name__ == "__main__":
     ser = Server()
+    # 注册信号处理函数
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     ser.execute()
