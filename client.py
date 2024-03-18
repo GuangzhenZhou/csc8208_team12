@@ -27,7 +27,13 @@ class Client:
             for sock in read_sock:
                 if sock == self.server:
                     msg = sock.recv(4096).decode("utf-8").rstrip('\n')
-                    print(msg)
+                    if not msg:
+                        # If the received message is empty, it means that the server has closed the connection.
+                        print("Connection closed by the server.")
+                        sys.exit()
+                    else:
+                        # If the received message is not empty, decode normally and print
+                        print(msg)
                 else:
                     msg = sys.stdin.readline().strip()
                     self.server.send((msg + '\n').encode('utf-8'))

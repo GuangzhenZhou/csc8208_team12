@@ -25,11 +25,12 @@ class Server:
         self.sock.bind((args_dict["addr"], args_dict["port"]))
         self.sock.listen(100)
 
-        # 处理高频消息的部分
+        # This part is handling high-frequency messages
         self.last_message_time = {}  # Records the last time each client sent a message
         self.message_count = {}  # Records the number of messages sent by each client within a specified time period
         self.suspicious_users = set()  # Log suspicious users
         self.silenced_users = {} # The key is conn and the value is the timestamp when the ban started.
+        self.ban_count = {} # The count of ban
 
     def update_user_activity(self, conn, addr):
         current_time = time.time()
@@ -47,12 +48,45 @@ class Server:
                 if self.message_count[conn] > message_limit:
                     # Flag user as suspicious and possible action
                     print(f"[Warning] {addr} might be a bot. Silencing for 1 minute.")
-                    self.suspicious_users.add(conn)
                     self.silenced_users[conn] = current_time  # Record the time when the ban started
+
+                    # Update the number of bans
+                    self.ban_count[conn] = self.ban_count.get(conn, 0) + 1
+
+                    # If banned for 5 times, the connection will be disconnected.
+                    if self.ban_count[conn] >= 5:
+                        conn.send("You have been banned too many times and will now be disconnected.\n".encode())
+                        self.cleanup_client(conn, addr)
+                        return
+
             else:
                 # Reset counters and timestamps
                 self.message_count[conn] = 1
                 self.last_message_time[conn] = current_time
+
+    '''
+    Clean up all server-side resources and tracking information 
+    related to the user when disconnecting the user
+    '''
+    def cleanup_client(self, conn, addr):
+        # Remove from active client list
+        if conn in self.clients:
+            self.clients.remove(conn)
+
+        # Clean user-specific data
+        client_ip = addr[0]
+        if client_ip in self.last_message_time:
+            del self.last_message_time[client_ip]
+        if client_ip in self.message_count:
+            del self.message_count[client_ip]
+        if conn in self.silenced_users:
+            del self.silenced_users[conn]
+        if conn in self.ban_count:
+            del self.ban_count[conn]
+
+        # Close connection
+        conn.close()
+        print(f"Disconnected {addr} due to excessive bans.")
 
     def broadcast(self, conn, addr, msg):
         encoded_msg = f"<{addr[0]}> {msg}".encode('utf-8')
