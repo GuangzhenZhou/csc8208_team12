@@ -75,8 +75,9 @@ class Server:
                     current_time = time.time()
                     # Check if user is banned
                     if conn in self.silenced_users and current_time - self.silenced_users[conn] < 60:
-                        # The user is in a muted state and a muting reminder message is sent.
+                        # The user is in a muted state, send a muting reminder message.
                         conn.send("YOU ARE CURRENTLY BANNED。\n".encode('utf-8'))
+                        continue  # Skip broadcasting the message
                     else:
                         # Unlock the mute status if the mute time has expired
                         if conn in self.silenced_users:
@@ -85,11 +86,11 @@ class Server:
                         decoded_msg = msg.decode('utf-8').rstrip('\n')
                         print(f"<{addr[0]}> {decoded_msg}")
 
-                    # Update user activity record
-                    self.update_user_activity(conn, addr)
+                        # Update user activity record
+                        self.update_user_activity(conn, addr)
 
-                    # Broadcast messages to other clients
-                    self.broadcast(conn, addr, decoded_msg)
+                        # Broadcast messages to other clients
+                        self.broadcast(conn, addr, decoded_msg)
                 else:
                     # If no message is received, the client may have disconnected
                     if conn in self.clients:
