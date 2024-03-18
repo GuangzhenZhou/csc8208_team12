@@ -129,6 +129,7 @@ class Server:
                     # If no message is received, the client may have disconnected
                     if conn in self.clients:
                         self.clients.remove(conn)
+                        print(f"Client {addr} disconnect.")  # Logging disconnection
                     conn.close()
                     break  # Exit loop
 
@@ -137,6 +138,7 @@ class Server:
                 if conn in self.clients:
                     self.clients.remove(conn)
                 conn.close()
+                print(f"Client {addr} was forcibly disconnected due to an exception.")  # Logging client disconnections due to exceptions
                 break  # Exit loop
 
     def execute(self):
